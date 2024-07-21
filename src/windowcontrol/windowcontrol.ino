@@ -1,30 +1,28 @@
-// VentilationRoom.ino
-// Company: KMP Electronics Ltd, Bulgaria
-// Web: http://kmpelectronics.eu/
+// windowcontrol.ino
+// Plamen Kovandzhiev's home projects
+// Web: https://github.com/kovandzhiev/WindowControl
 // Supported boards:
-//    KMP ProDino WiFi-ESP WROOM-02 (http://www.kmpelectronics.eu/en-us/products/prodinowifi-esp.aspx)
+//		PRODINo WIFI-ESP WROOM-02 V1 (https://kmpelectronics.eu/products/prodino-wifi-esp-wroom-02-v1/)
 // Description:
-// Example link: 
-// Prerequisites: 
-//    You should install following libraries:
-//		Install with Library Manager. "ArduinoJson by Benoit Blanchon" https://github.com/bblanchon/ArduinoJson
-// Version: 0.1.0
-// Start date: 16.06.2019
-// Last version date: 16.06.2019
-// Author: Plamen Kovandjiev <p.kovandiev@kmpelectronics.eu>
+//		This code will control - open and close the window in the room
+// Used libraries:
+//      PubSubClient by Nick O'Leary (https://pubsubclient.knolleary.net/)
+//      WiFiManager by tzapu (https://github.com/tzapu/WiFiManager)
+// Version: 1.0.0
+// Date: 21.07.2024
+// Author: Plamen Kovandzhiev <kovandjiev@gmail.com>
 
 #include "VentilationHelper.h"
 #include "WindowOpener.h"
 #include "VentilateProcess.h"
 #include "MqttTopicHelper.h"
-#include <KMPDinoWiFiESP.h>       // Our library. https://www.kmpelectronics.eu/en-us/examples/prodinowifi-esp/howtoinstall.aspx
+#include <KMPDinoWiFiESP.h>
 #include <KMPCommon.h>
-
 
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
-#include <PubSubClient.h>         // Install with Library Manager. "PubSubClient by Nick O'Leary" https://pubsubclient.knolleary.net/
-#include <WiFiManager.h>          // Install with Library Manager. "WiFiManager by tzapu" https://github.com/tzapu/WiFiManager
+#include <PubSubClient.h>
+#include <WiFiManager.h>
 
 DeviceSettings _settings;
 
@@ -212,6 +210,7 @@ void callback(char* topics, byte* payload, unsigned int payloadLen)
 		return;
 	}
 }
+
 /**
 * @brief Execute first after start the device. Initialize hardware.
 *
@@ -222,7 +221,7 @@ void setup(void)
 	DEBUG_FC.begin(115200);
 
 	DEBUG_FC_PRINTLN(F(""));
-	DEBUG_FC_PRINTLN(F("KMP Ventilation room Mqtt application starting."));
+	DEBUG_FC_PRINTLN(F("Window control application starting..."));
 	DEBUG_FC_PRINTLN(F(""));
 
 	// Init KMP ProDino WiFi-ESP board.
@@ -231,11 +230,11 @@ void setup(void)
 
 	// You can open the Arduino IDE Serial Monitor window to see what the code is doing
 
-	// Init bypass.
+	// Init device.
 	WindowOpener.init(OptoIn1, Relay1, Relay2, &publishTopic);
 	VentilateProcess.init(gates, GATES_COUNT, &publishTopic);
 
-		DEBUG_FC_PRINTLN(F("WiFiManager starting..."));
+	DEBUG_FC_PRINTLN(F("WiFiManager starting..."));
 	//Local initialization. Once it's business is done, there is no need to keep it around.
 	WiFiManager wifiManager;
 
@@ -244,14 +243,14 @@ void setup(void)
 	{
 		DEBUG_FC_PRINTLN(F("Resetting WiFi configuration..."));
 		wifiManager.resetSettings();
-		DEBUG_FC_PRINTLN(F("WiFi configuration was reseted."));
+		DEBUG_FC_PRINTLN(F("WiFi configuration was reset"));
 	}
 
 	// Set save configuration callback.
 	wifiManager.setSaveConfigCallback(saveConfigCallback);
 
 	DEBUG_FC_PRINTLN(F("Manage connect and settings..."));
-	if (!manageConnectAndSettings(&wifiManager, &_settings))
+	if (!manageConnectAndSettings(&wifiManager, &_settings, 120))
 	{
 		return;
 	}
@@ -264,8 +263,11 @@ void setup(void)
 	uint16_t port = atoi(_settings.MqttPort);
 	_mqttClient.setServer(_settings.MqttServer, port);
 	_mqttClient.setCallback(callback);
+	
+	// Set WiFi mode to WIFI_STA - station
+	WiFi.mode(WIFI_STA);
 
-	// Close window.
+	// When the device has been started it close the window for security reason
 	WindowOpener.setState(CloseWindow, true);
 }
 
@@ -290,17 +292,18 @@ void loop(void)
 		publishTopic(DeviceIsReady);
 	}
 
+	// Do not close the window if WiFi is disconnected
 	if (!_isConnected)
 	{
-		if (_windowCloseIfNotConnectedInterval == 0)
-		{
-			_windowCloseIfNotConnectedInterval = millis() + WAIT_FOR_CONNECTION_TIMEOUT_MS;
-		}
+		// if (_windowCloseIfNotConnectedInterval == 0)
+		// {
+		// 	_windowCloseIfNotConnectedInterval = millis() + WAIT_FOR_CONNECTION_TIMEOUT_MS;
+		// }
 
-		if (_windowCloseIfNotConnectedInterval > millis())
-		{
-			WindowOpener.setState(CloseWindow, true);
-		}
+		// if (_windowCloseIfNotConnectedInterval < millis())
+		// {
+		// 	WindowOpener.setState(CloseWindow, true);
+		// }
 
 		return;
 	}

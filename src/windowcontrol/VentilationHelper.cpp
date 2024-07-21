@@ -103,7 +103,7 @@ void ReadConfiguration(DeviceSettings* settings)
 *
 * @return bool if successful connected - true else false.
 */
-bool manageConnectAndSettings(WiFiManager* wifiManager, DeviceSettings* settings)
+bool manageConnectAndSettings(WiFiManager* wifiManager, DeviceSettings* settings, int waitingWiFiInSec)
 {
 	//read configuration from FS json
 	DEBUG_FC_PRINTLN(F("Mounting FS..."));
@@ -119,7 +119,7 @@ bool manageConnectAndSettings(WiFiManager* wifiManager, DeviceSettings* settings
 	WiFiManagerParameter customMqttUser("user", "MQTT user", settings->MqttUser, MQTT_USER_LEN);
 	WiFiManagerParameter customMqttPass("password", "MQTT pass", settings->MqttPass, MQTT_PASS_LEN);
 	WiFiManagerParameter customBaseTopic("baseTopic", "Base topic", settings->BaseTopic, BASE_TOPIC_LEN);
-	WiFiManagerParameter customDevicTopic("deviceTopic", "Device topic", settings->DeviceTopic, DEVICE_TOPIC_LEN);
+	WiFiManagerParameter customDeviceTopic("deviceTopic", "Device topic", settings->DeviceTopic, DEVICE_TOPIC_LEN);
 
 	// add all your parameters here
 	wifiManager->addParameter(&customMqttServer);
@@ -128,13 +128,13 @@ bool manageConnectAndSettings(WiFiManager* wifiManager, DeviceSettings* settings
 	wifiManager->addParameter(&customMqttUser);
 	wifiManager->addParameter(&customMqttPass);
 	wifiManager->addParameter(&customBaseTopic);
-	wifiManager->addParameter(&customDevicTopic);
+	wifiManager->addParameter(&customDeviceTopic);
 
 	DEBUG_FC_PRINTLN(F("Waiting WiFi up..."));
 
 	// If the Fan coil (device) starts together with WiFi, need time to initialize WiFi router.
-	// During this time (60 seconds) device trying to connect to WiFi.
-	wifiManager->setTimeout(60);
+	// During this time waitingWiFiInSec device trying to connect to WiFi.
+	wifiManager->setTimeout(waitingWiFiInSec);
 
 	// fetches ssid and pass from eeprom and tries to connect
 	// if it does not connect it starts an access point with the specified name
@@ -157,7 +157,7 @@ bool manageConnectAndSettings(WiFiManager* wifiManager, DeviceSettings* settings
 		strcpy(settings->MqttUser, customMqttUser.getValue());
 		strcpy(settings->MqttPass, customMqttPass.getValue());
 		strcpy(settings->BaseTopic, customBaseTopic.getValue());
-		strcpy(settings->DeviceTopic, customDevicTopic.getValue());
+		strcpy(settings->DeviceTopic, customDeviceTopic.getValue());
 
 		SaveConfiguration(settings);
 	}

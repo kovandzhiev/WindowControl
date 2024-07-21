@@ -81,7 +81,7 @@ struct DeviceSettings
 bool connectWiFi();
 
 void ReadConfiguration(DeviceSettings* settings);
-bool manageConnectAndSettings(WiFiManager* wifiManager, DeviceSettings* settings);
+bool manageConnectAndSettings(WiFiManager* wifiManager, DeviceSettings* settings, int waitingWiFiInSec);
 void SaveConfiguration(DeviceSettings* settings);
 void saveConfigCallback();
 
